@@ -9,7 +9,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: KernelSU into drivers/kernelsu (gitlink not tracked)
-        run: rm -rf drivers/kernelsu && git clone --depth=1 https://github.com/KernelSU/KernelSU drivers/kernelsu
+        run: rm -rf drivers/kernelsu && mkdir -p drivers/kernelsu && curl -sL https://api.github.com/repos/KernelSU/KernelSU/tarball/main | tar xz --strip-components=1 -C drivers/kernelsu
       - name: Deps
         run: sudo apt-get update && sudo apt-get install -y clang lld llvm bc bison flex libssl-dev libelf-dev cpio
       - name: Build
