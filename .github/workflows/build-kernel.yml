@@ -16,6 +16,8 @@ jobs:
         run: |
           make O=out ARCH=arm64 gki_defconfig
           ./scripts/config --file out/.config --set-str LOCALVERSION "-ShiomiKernuk-v1.0"
+          ./scripts/config --file out/.config -d KASAN -d KASAN_GENERIC -d KASAN_SW_TAGS -d KASAN_OUTLINE -d UBSAN -d KCOV -d GCOV_KERNEL
+          make O=out ARCH=arm64 olddefconfig
           PATH=/usr/lib/llvm-14/bin:$PATH make -j$(nproc) O=out ARCH=arm64 LLVM=1 LLVM_IAS=1 Image.gz
       - name: AnyKernel3 zip
         run: |
