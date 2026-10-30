@@ -1,0 +1,28 @@
+name: Build ShiomiKernuk (SukiSU-Ultra, GKI 5.10)
+on:
+  workflow_dispatch:
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: SukiSU-Ultra into drivers/kernelsu
+        run: rm -rf drivers/kernelsu && curl -LSs "https://raw.githubusercontent.com/SukiSU-Ultra/SukiSU-Ultra/main/kernel/setup.sh" | bash -s main
+      - name: Deps
+        run: sudo apt-get update && sudo apt-get install -y clang lld llvm bc bison flex libssl-dev libelf-dev cpio
+      - name: Build
+        run: |
+          make O=out ARCH=arm64 gki_defconfig
+          ./scripts/config --file out/.config --set-str LOCALVERSION "-ShiomiKernuk-SukiSU-v1.0"
+          PATH=/usr/lib/llvm-14/bin:$PATH make -j$(nproc) O=out ARCH=arm64 LLVM=1 LLVM_IAS=1 Image.gz
+      - name: AnyKernel3 zip
+        run: |
+          git clone --depth=1 -b gki https://github.com/whiskiesweet/Azure-Anykernel anykernel
+          cp out/arch/arm64/boot/Image.gz anykernel/Image.gz
+          cd anykernel && zip -r9 ../ShiomiKernuk-SukiSU-AnyKernel.zip . -x .git/*
+      - uses: actions/upload-artifact@v4
+        with:
+          name: shiomikernuk-sukisu
+          path: |
+            out/arch/arm64/boot/Image.gz
+            ShiomiKernuk-SukiSU-AnyKernel.zip
