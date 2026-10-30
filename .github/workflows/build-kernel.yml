@@ -19,7 +19,7 @@ jobs:
           ./scripts/config --file out/.config \
             -d KASAN -d KASAN_GENERIC -d KASAN_SW_TAGS -d KASAN_OUTLINE -d UBSAN -d KCOV -d GCOV_KERNEL -d WERROR \
             -e TCP_CONG_BBR -e NET_SCH_FQ -e WIREGUARD \
-            -e ZRAM -e ZSMALLOC -e CRYPTO_ZSTD -e ZRAM_WRITEBACK \
+            \
             -e SCHED_AUTOGROUP -e HZ_1000 \
             --set-val VM_MAX_READAHEAD 2048
           make O=out ARCH=arm64 olddefconfig
