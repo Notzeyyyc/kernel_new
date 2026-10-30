@@ -1,4 +1,4 @@
-name: Build ShiomiKernuk (GKI 5.10)
+name: Build ShiomiKernuk 5.10.272 (SukiSU, Enforcing+Permissive)
 on:
   workflow_dispatch:
   push:
@@ -8,25 +8,36 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: KernelSU into drivers/kernelsu (gitlink not tracked)
-        run: rm -rf drivers/kernelsu && curl -LSs "https://raw.githubusercontent.com/tiann/KernelSU/main/kernel/setup.sh" | bash -s main
+      - name: SukiSU-Ultra into drivers/kernelsu
+        run: rm -rf drivers/kernelsu && curl -LSs "https://raw.githubusercontent.com/SukiSU-Ultra/SukiSU-Ultra/main/kernel/setup.sh" | bash -s main
       - name: Deps
         run: sudo apt-get update && sudo apt-get install -y clang lld llvm bc bison flex libssl-dev libelf-dev cpio
-      - name: Build
+      - name: Config + tweaks
         run: |
           make O=out ARCH=arm64 gki_defconfig
-          ./scripts/config --file out/.config --set-str LOCALVERSION "-ShiomiKernuk-v1.0"
-          ./scripts/config --file out/.config -d KASAN -d KASAN_GENERIC -d KASAN_SW_TAGS -d KASAN_OUTLINE -d UBSAN -d KCOV -d GCOV_KERNEL
+          ./scripts/config --file out/.config --set-str LOCALVERSION "-ShiomiKernuk-SukiSU-270-v1.1"
+          ./scripts/config --file out/.config \
+            -d KASAN -d KASAN_GENERIC -d KASAN_SW_TAGS -d KASAN_OUTLINE -d UBSAN -d KCOV -d GCOV_KERNEL \
+            -e TCP_CONG_BBR -e NET_SCH_FQ -e WIREGUARD \
+            -e ZRAM -e ZSMALLOC -e CRYPTO_ZSTD -e ZRAM_WRITEBACK \
+            -e SCHED_AUTOGROUP -e HZ_1000 \
+            --set-val VM_MAX_READAHEAD 2048
           make O=out ARCH=arm64 olddefconfig
-          PATH=/usr/lib/llvm-14/bin:$PATH make -j$(nproc) O=out ARCH=arm64 LLVM=1 LLVM_IAS=1 Image.gz
-      - name: AnyKernel3 zip
+      - name: Build
+        run: PATH=/usr/lib/llvm-14/bin:$PATH make -j$(nproc) O=out ARCH=arm64 LLVM=1 LLVM_IAS=1 Image.gz
+      - name: AnyKernel zips (enforcing + permissive)
         run: |
           git clone --depth=1 -b gki https://github.com/whiskiesweet/Azure-Anykernel anykernel
           cp out/arch/arm64/boot/Image.gz anykernel/Image.gz
-          cd anykernel && zip -r9 ../ShiomiKernuk-AnyKernel.zip . -x .git/*
+          cd anykernel
+          zip -r9 ../ShiomiKernuk-270-Enforcing.zip . -x .git/\*
+          # permissive variant: add selinux cmdline patch
+          grep -q "patch_cmdline" anykernel.sh || sed -i 's|^split_boot$|patch_cmdline "androidboot.selinux" "androidboot.selinux=permissive"\nsplit_boot|' anykernel.sh
+          zip -r9 ../ShiomiKernuk-270-Permissive.zip . -x .git/\*
       - uses: actions/upload-artifact@v4
         with:
-          name: shiomikernuk
+          name: shiomikernuk-270
           path: |
             out/arch/arm64/boot/Image.gz
-            ShiomiKernuk-AnyKernel.zip
+            ShiomiKernuk-270-Enforcing.zip
+            ShiomiKernuk-270-Permissive.zip
